@@ -225,6 +225,13 @@ getSteinerTreeBuilder()
   return openroad->getSteinerTreeBuilder();
 }
 
+artnetgen::ArtNetGen*
+getArtNetGen()
+{
+  OpenRoad *openroad = getOpenRoad();
+  return openroad->getArtNetGen();
+}
+
 } // namespace ord
 
 namespace sta {

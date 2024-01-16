@@ -88,6 +88,7 @@
 #include "triton_route/MakeTritonRoute.h"
 #include "utl/Logger.h"
 #include "utl/MakeLogger.h"
+#include "artnetgen/MakeArtNetGen.h"
 
 namespace sta {
 extern const char* openroad_swig_tcl_inits[];
@@ -154,6 +155,7 @@ OpenRoad::~OpenRoad()
   deleteICeWall(icewall_);
   deleteDistributed(distributer_);
   deleteSteinerTreeBuilder(stt_builder_);
+  deleteArtNetGen(artNetGen_);
   dft::deleteDft(dft_);
   delete logger_;
 }
@@ -212,6 +214,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   icewall_ = makeICeWall();
   distributer_ = makeDistributed();
   stt_builder_ = makeSteinerTreeBuilder();
+  artNetGen_ = makeArtNetGen();
   dft_ = dft::makeDft();
 
   // Init components.
@@ -252,6 +255,7 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   initPdnGen(this);
   initDistributed(this);
   initSteinerTreeBuilder(this);
+  initArtNetGen(this);
   dft::initDft(this);
 
   // Import exported commands to global namespace.

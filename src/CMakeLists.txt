@@ -64,6 +64,7 @@ set(ODB_HOME ${PROJECT_SOURCE_DIR}/src/odb)
 set(DBSTA_HOME ${PROJECT_SOURCE_DIR}/src/dbSta)
 set(RESIZER_HOME ${PROJECT_SOURCE_DIR}/src/rsz)
 set(GUI_HOME ${PROJECT_SOURCE_DIR}/src/gui)
+set(ARTNETGEN_HOME ${PROJECT_SOURCE_DIR}/src/artnetgen)
 
 set(OPENROAD_SOURCE
   Design.cc
@@ -282,7 +283,7 @@ add_subdirectory(utl)
 add_subdirectory(dst)
 add_subdirectory(pdn)
 add_subdirectory(dft)
-
+add_subdirectory(artnetgen)
 ################################################################
 
 add_executable(openroad
@@ -343,6 +344,7 @@ target_link_libraries(openroad
   utl
   pdn
   dft
+  artnetgen
   ${ABC_LIBRARY}
   ${TCL_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
