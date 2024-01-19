@@ -124,9 +124,11 @@ class Netlist;
 
 class ArtNetGen {
   public:
-    //void setDb(odb::dbDatabase* db);
-    //void setSta(sta::dbSta* sta);
-    void init(odb::dbDatabase* db, sta::dbSta* sta, utl::Logger* logger);
+    void setDb(odb::dbDatabase* db);
+    void setSta(sta::dbSta* sta);
+    void setLogger(utl::Logger* logger);
+
+    void init();
     void clear();
 
     // run

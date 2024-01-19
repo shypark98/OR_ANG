@@ -278,6 +278,8 @@ unordered_map<int,int> makeExpDistribution(int minVal, int maxVal, float avgVal,
 void
 ArtNetGen::createSpec(int numInsts, int numIOs, float combRatio, float avgNetDeg, float avgBbox, float avgTopoOrder, 
         const char* onlyUseList, const char* fileName) {
+    
+    cout << "HERE CREATE SPEC" << endl;
 
     dbDatabase* db = ord::OpenRoad::openRoad()->getDb();
     
@@ -343,7 +345,6 @@ ArtNetGen::createSpec(int numInsts, int numIOs, float combRatio, float avgNetDeg
     } else {
 
     }
-
 
     ofstream outFile(fileName);
 

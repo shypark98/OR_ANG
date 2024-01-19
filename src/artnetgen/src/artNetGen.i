@@ -33,7 +33,10 @@ void
 artnetgen_init_cmd()
 {
   ArtNetGen* artNetGen= getArtNetGen();
-  artNetGen->init(getDb(), getSta(), getLogger());
+  artNetGen->setDb(getDb());
+  artNetGen->setSta(getSta());
+  artNetGen->setLogger(getLogger());
+  artNetGen->init();
 }
 
 void

@@ -27,9 +27,9 @@ initArtNetGen(OpenRoad *openroad)
   Tcl_Interp* tcl_interp = openroad->tclInterp();
   Artnetgen_Init(tcl_interp);
   sta::evalTclInit(tcl_interp, sta::artnetgen_tcl_inits);
-  openroad->getArtNetGen()->init(openroad->getDb(),
-                                 openroad->getSta(),
-                                 openroad->getLogger());
+  openroad->getArtNetGen()->setDb(openroad->getDb());
+  openroad->getArtNetGen()->setSta(openroad->getSta());
+  openroad->getArtNetGen()->setLogger(openroad->getLogger());
 }
 
 void

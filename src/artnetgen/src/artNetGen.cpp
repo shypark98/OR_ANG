@@ -147,13 +147,13 @@ ArtNetGen::clear() {
   instanceCnt_ = 5000;
   inputPinCnt_ = 20;
   outputPinCnt_ = 20;
-    avgTopoOrder_ = 10.0;
-    avgGateDelay_ = 0.1;
+  avgTopoOrder_ = 10.0;
+  avgGateDelay_ = 0.1;
   combRatio_ = 0.9;
   verbose_ = 1;
   specFile_ = "";
   outFile_ = "";
-    topModule_ = "artnet";
+  topModule_ = "artnet";
 
 
   masters_.clear();
@@ -166,16 +166,14 @@ ArtNetGen::clear() {
 }
 
 void 
-ArtNetGen::init(odb::dbDatabase* db, sta::dbSta* sta, utl::Logger* logger) {  
-  db_ = db;
-  logger_ = logger;
-  /* 
+ArtNetGen::init() {  
+  /*
   if( !log_ ) {
     log_ = std::make_shared<Logger>("ANG", verbose_);
   }
   */
   if (specFile_ != "" ) {
-        readSpec();
+      readSpec();
   }
   else {
       // spec file must be specified
@@ -683,7 +681,6 @@ void
 ArtNetGen::writeVerilog() {
 }
 
-/*
 void
 ArtNetGen::setDb(odb::dbDatabase* db) {
   db_ = db;
@@ -693,7 +690,12 @@ void
 ArtNetGen::setSta(sta::dbSta* sta) {
   sta_ = sta;
 }
-*/
+
+void
+ArtNetGen::setLogger(utl::Logger* logger) {
+  logger_ = logger;
+}
+
 void
 ArtNetGen::setAvgGateDelay(double avgDelay) {
     cout << "[INFO] avg. gate delay changes from " 
