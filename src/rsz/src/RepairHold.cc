@@ -229,8 +229,8 @@ RepairHold::bufferHoldDelays(LibertyCell *buffer,
   LibertyPort *input, *output;
   buffer->bufferPorts(input, output);
 
-  for (int rf_index : RiseFall::rangeIndex()) {
-    delays[rf_index] = MinMax::min()->initValue();
+  for (int rf_index : RiseFall::rangeIndex()) { //static const std::array<int, 2> &rangeIndex() { return range_index_; }
+    delays[rf_index] = MinMax::min()->initValue(); //초기화 
   }
   for (Corner *corner : *sta_->corners()) {
     LibertyPort *corner_port = input->cornerPort(corner->libertyIndex(max_));

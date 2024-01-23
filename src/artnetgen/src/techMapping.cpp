@@ -601,8 +601,6 @@ Netlist::getCombinationalRatio() {
     return currentRatio;
 }
 
-
-
 void
 Netlist::timingPathConstruction_v1() {
     // TODO
