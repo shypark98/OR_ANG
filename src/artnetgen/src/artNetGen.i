@@ -90,10 +90,10 @@ artnetgen_write_spec_cmd(const char* file_name) {
 }
 
 void
-artnetgen_create_spec_cmd(int num_insts, int num_primary_ios, float comb_ratio, float avg_net_degree, float avg_bbox, 
+artnetgen_create_spec_cmd(int num_insts, int num_primary_in, int num_primary_out, float comb_ratio, float avg_net_degree, float avg_bbox, 
         float avg_topo_order, const char* cell_list_file, const char* out_file_name) {
     ArtNetGen* artNetGen = getArtNetGen();
-    artNetGen->createSpec(num_insts, num_primary_ios, comb_ratio, avg_net_degree, avg_bbox, avg_topo_order, cell_list_file, out_file_name);
+    artNetGen->createSpec(num_insts, num_primary_in, num_primary_out, comb_ratio, avg_net_degree, avg_bbox, avg_topo_order, hierarchy_flag, cell_list_file, out_file_name);
 }
 
 
@@ -105,10 +105,31 @@ artnetgen_set_verbose_cmd(int verbose)
 }
 
 void
+artnetgen_set_spl_file_cmd(const char* file)
+{
+  ArtNetGen* artNetGen = getArtNetGen();
+  artNetGen->setSPLFile(file);
+}
+
+void
+artnetgen_set_log_file_cmd(const char* file)
+{
+  ArtNetGen* artNetGen = getArtNetGen();
+  artNetGen->setLogFile(file);
+}
+
+void
 artnetgen_set_spec_file_cmd(const char* file)
 {
   ArtNetGen* artNetGen = getArtNetGen();
   artNetGen->setSpecFile(file);
+}
+
+void
+artnetgen_set_hierarchy_flag_cmd(bool hierarchy_flag)
+{
+  ArtNetGen* artNetGen = getArtNetGen();
+  artNetGen->setHierFlag(hierarchy_flag);
 }
 
 void
@@ -121,7 +142,7 @@ artnetgen_set_out_file_cmd(const char* file)
 void
 artnetgen_run_cmd() 
 {
-  ArtNetGen* artNetGen= getArtNetGen();
+  ArtNetGen* artNetGen = getArtNetGen();
   artNetGen->run(); 
 }
 

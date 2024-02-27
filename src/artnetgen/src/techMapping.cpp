@@ -3,6 +3,7 @@
 #include "bin.h"
 #include "node.h"
 
+#include <fstream>
 #include <algorithm>
 #include <math.h>
 #include <limits.h>
@@ -25,11 +26,16 @@ using std::queue;
 using std::make_pair;
 using std::ceil;
 using std::to_string;
-
+using std::ofstream;
 using namespace odb;
 
 void
 Netlist::initOnlyUseMasters() {
+    
+    Netlist netlist;
+    ArtNetGen* ang = netlist.getAng();
+    ofstream log(ang->getLogFile(), std::ios::app);
+
     int fiMax = fiDist_.xMax();
     fi2CombMasters_ = vector<vector<dbMaster*>>(fiMax+1);
     fi2SequMasters_ = vector<vector<dbMaster*>>(fiMax+1);
@@ -64,21 +70,16 @@ Netlist::initOnlyUseMasters() {
     //
     for(int i=0; i <= fiMax; i++) {
 
-        cout << "# of fanins : " << i << endl;
+        log << "# of fanins : " << i << endl;
         vector<dbMaster*> masters = fi2SequMasters_[i];
         for(dbMaster* master : masters) //MasterInfo& info : masters) {
         {
             //dbMaster* master = info.master();
-            cout << "   - " << master->getName() << endl;
+            log << "   - " << master->getName() << endl;
         }
 
-
-
     }
-
-
-  
-
+    log.close();
 
 }
 
@@ -87,7 +88,7 @@ void
 Netlist::technologyMapping() {
 
     int fiMax = fiDist_.xMax();
-    vector<vector<Node*>> fi2CombNodes(fiMax+1);
+    vector<vector<Node*>> fi2CombNodes(fiMax+1); //vector<Node*>을 fiMax+1개 생성
     vector<vector<Node*>> fi2SequNodes(fiMax+1);
 
     //vector<vector<dbMaster*>> fi2CombMasters(fiMax+1);
@@ -607,11 +608,12 @@ Netlist::timingPathConstruction_v1() {
     //double synClkPeriod = ang_->getSynClkPeriod();
     double avgGateDelay = ang_->getAvgGateDelay();
     double avgTopoOrder = ang_->getAvgTopoOrder();
-
+    
+    ofstream log(ang_->getLogFile(), std::ios::app);
 
     int targetMaxOrder = ceil(avgTopoOrder) + 2; //ceil( synClkPeriod / avgGateDelay );
     //cout << "timing path construction (target clk : " << synClkPeriod << " avg. gate delay : " << avgGateDelay << ")" << endl;
-    cout << "timing path construction (target avg. topo. order : " << avgTopoOrder << ")" << endl;
+    log << "timing path construction (target avg. topo. order : " << avgTopoOrder << ")" << endl;
 
     int numIter = 0;
 
@@ -620,25 +622,24 @@ Netlist::timingPathConstruction_v1() {
         bool updated = false;
         for(Node* n : nodes_) {
             if(topoOrder[n] == targetMaxOrder) {
-                if(n->getType() == NodeType::Combinational) {
-                    n->setType(NodeType::Sequential);
+                if(n->getType() == NodeType::Combinational) { //targetMaxOrder에 해당하는 cell이 combinational logic일 경우
+                    n->setType(NodeType::Sequential); // sequential로 변경
                     updated = true;
                 }
             }
         }
-  
-    
+
         if(numIter++ % 5 == 0) {
-            cout << numIter++ << "-iteration target " << avgTopoOrder << " cur_avg " << getAvgTopologicalOrder() << " cur_max " << getMaxTopologicalOrder() << endl;
+            log << numIter++ << "-iteration target " << avgTopoOrder << " cur_avg " << getAvgTopologicalOrder() << " cur_max " << getMaxTopologicalOrder() << endl;
         }
 
         if(!updated)
             break;
-    }
+    } // Fig.8에 해당하는 부분
 
 
     // TODO 
-    // fit to comb_ratio (input arg)
+    // fit to comb_ratio (input arg) //Fig 9에 해당하는 부분
     int numTotNodes = nodes_.size();
     int numCombNodes = 0;
     int numSequNodes = 0;
@@ -665,18 +666,18 @@ Netlist::timingPathConstruction_v1() {
 
     double currentRatio = 1.0 * numCombNodes / (numCombNodes + numSequNodes);
     
-    cout << "Target combination ratio   : " << ang_->getCombRatio() << endl;
-    cout << "Current combination ratio  : " << currentRatio << endl;
-    cout << "Current max topo order     : " << getMaxTopologicalOrder() << endl;
-    cout << "Current avg topo order     : " << getAvgTopologicalOrder() << endl;
+    log << "Target combination ratio   : " << ang_->getCombRatio() << endl;
+    log << "Current combination ratio  : " << currentRatio << endl;
+    log << "Current max topo order     : " << getMaxTopologicalOrder() << endl;
+    log << "Current avg topo order     : " << getAvgTopologicalOrder() << endl;
     int edgeLength = 0;
     bool finish = false;
 
 
     //for(int edgeLength=0; edgeLength < layoutDimX_+layoutDimY_; edgeLength++) {
     //for(int edgeLength=0; edgeLength < 3; edgeLength++) {
-    int maxLen = ceil(0.2 * (layoutDimX_ + layoutDimY_));
-    cout << "Max len : " << maxLen << endl;
+    int maxLen = ceil(0.2 * (layoutDimX_ + layoutDimY_)); // 어떻게 정해진거?
+    log << "Max len : " << maxLen << endl;
     for(int edgeLength=0; edgeLength < max(3, maxLen); edgeLength++) {
 
         if(currentRatio >= ang_->getCombRatio())
@@ -721,14 +722,14 @@ Netlist::timingPathConstruction_v1() {
                     int totFanins = n1->numFanins() + n2->numFanins();
                     int totFanouts = n1->numFanouts() + n2->numFanouts();
 
-                    if(totFanins <= fiDist_.xMax() && totFanouts < foDist_.xMax()) {
+                    if(totFanins <= fiDist_.xMax() && totFanouts < foDist_.xMax()) { // fanin / fanout distribution의 max보다 작을 때?
                         found=true;
                         break;
                     } 
                 }
 
                 if(!found) continue;
-
+                
                 Node* n3 = createMergeNode(n1, n2, true);
                 n1->setType(NodeType::Combinational);
                 n2->setType(NodeType::Combinational);
@@ -826,12 +827,12 @@ Netlist::timingPathConstruction_v1() {
             break;
     }
 
-    cout << "Current max topo order     : " << getMaxTopologicalOrder() << endl;
-    cout << "Current comb_ratio : " << currentRatio << " (" << ang_->getCombRatio() << ")" << endl;
-    cout << getCombinationalRatio() << endl;
+    log << "Current max topo order     : " << getMaxTopologicalOrder() << endl;
+    log << "Current comb_ratio : " << currentRatio << " (" << ang_->getCombRatio() << ")" << endl;
+    log << getCombinationalRatio() << endl;
 
-    cout << "#comb : " << getCountNodeType(NodeType::Combinational) << endl;
-    cout << "#sequ : " << getCountNodeType(NodeType::Sequential) << endl;
+    log << "#comb : " << getCountNodeType(NodeType::Combinational) << endl;
+    log << "#sequ : " << getCountNodeType(NodeType::Sequential) << endl;
 
     for(int i=0; i < nodes_.size(); i++) {
         Node* node = nodes_[i];
@@ -859,12 +860,13 @@ Netlist::timingPathConstruction_v1() {
 
     currentRatio = 1.0 * numCombNodes / (numSequNodes + numCombNodes);
 
-    cout << "Current comb_ratio : " << currentRatio << " (" << ang_->getCombRatio() << ")" << endl;
-    cout << getCombinationalRatio() << endl;
-    cout << "#comb : " << getCountNodeType(NodeType::Combinational) << endl;
-    cout << "#sequ : " << getCountNodeType(NodeType::Sequential) << endl;
-    cout << "Max topological order : " << getMaxTopologicalOrder() << " (target max order -> " << targetMaxOrder << ")" << endl;
+    log << "Current comb_ratio : " << currentRatio << " (" << ang_->getCombRatio() << ")" << endl;
+    log << getCombinationalRatio() << endl;
+    log << "#comb : " << getCountNodeType(NodeType::Combinational) << endl;
+    log << "#sequ : " << getCountNodeType(NodeType::Sequential) << endl;
+    log << "Max topological order : " << getMaxTopologicalOrder() << " (target max order -> " << targetMaxOrder << ")" << endl;
 
+    log.close();
 }
 
 

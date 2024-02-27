@@ -761,7 +761,7 @@ void PartitionMgr::writePartitionVerilog(const char* file_name,
 
   logger_->info(PAR, 1, "Writing partition to verilog.");
   // get top module name
-  const std::string top_name = db_network_->name(db_network_->topInstance());
+  const std::string top_name = db_network_->name(db_network_->topInstance()); // 왜 여기서 가져올까?
 
   // build partition instance map
   std::map<int, std::set<Instance*>> instance_map;
@@ -774,13 +774,13 @@ void PartitionMgr::writePartitionVerilog(const char* file_name,
                     inst->getName());
     } else {
       const int partition = prop_id->getValue();
-      instance_map[partition].insert(db_network_->dbToSta(inst));
+      instance_map[partition].insert(db_network_->dbToSta(inst)); // 각 cluster 마다 instance_map 생성
     }
   }
 
   // create new network and library
   NetworkReader* network = sta::makeConcreteNetwork();
-  Library* library = network->makeLibrary("Partitions", nullptr);
+  Library* library = network->makeLibrary("Partitions", nullptr); // Search the libraries in read order for a cell by name.
 
   // new top module
   Instance* top_inst

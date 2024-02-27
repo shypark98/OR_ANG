@@ -391,7 +391,7 @@ void TritonPart::PartitionDesign(unsigned int num_parts_arg,
   // there is an attribute for vertex_id
   logger_->info(PAR, 5, "Reading netlist.");
   // if the fence_flag_ is true, only consider the instances within the fence
-  ReadNetlist(fixed_file, community_file, group_file);
+  ReadNetlist(fixed_file, community_file, group_file); //#######
 
   // call the multilevel partitioner to partition hypergraph_
   // but the evaluation is the original_hypergraph_

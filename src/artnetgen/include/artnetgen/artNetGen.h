@@ -146,10 +146,15 @@ class ArtNetGen {
     void setCombRatio(double combRatio) { combRatio_ = combRatio; }
     void setVerbose(int verbose) { verbose_ = verbose; } 
     void setSpecFile(const char* specFile) { specFile_ = specFile; }
+    void setHierFlag(bool hierarchy_flag) { hierarchy_flag_ = hierarchy_flag; }
+    void setSPLFile(const char* SPLFile) { SPLFile_ = SPLFile; }
+    void setLogFile(const char* LogFile) { logFile_ = LogFile; }
     void setOutFile(const char* outFile) { outFile_ = outFile; }
     void setTopModule(const char* topModule) { topModule_ = topModule; }
     void setDontUse(const char* macroName);
-
+    
+    std::string getLogFile() const {return logFile_; }
+    std::string getSPLFile() const {return SPLFile_; }
 
     int getInstanceCnt() const { return instanceCnt_; }
     int getInputPinCnt() const { return inputPinCnt_; }
@@ -168,8 +173,8 @@ class ArtNetGen {
     // synClkPeriod, avgGateDelay will be disappeared later
     void writeSpec(const char* fileName);
     // create spec file from parameters
-    void createSpec(int numInsts, int numPIOs, float combRatio, float avgNegDeg, float avgBbox, float avgTopoOrder, 
-            const char* onlyUseList, const char* fileName);
+    void createSpec(int numInsts, int numINs, int numOUTs, float combRatio, float avgNegDeg, float avgBbox, float avgTopoOrder, 
+            bool hierarchy_flag, const char* onlyUseList, const char* fileName);
 
     double analyzeTopologicalOrder();
 
@@ -217,6 +222,9 @@ class ArtNetGen {
     std::string specFile_;
     std::string outFile_;
     std::string topModule_;
+    std::string logFile_;
+    std::string SPLFile_;
+    bool hierachy_flag_;
 
     // privateFuncs
     void readSpec();

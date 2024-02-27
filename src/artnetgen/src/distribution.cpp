@@ -265,11 +265,11 @@ vector<int> Distribution::getSamplingVector() {
     vector<int> sampling;
 
     for(int x=0; x < max_+1; x++) {
-        int cnt = target(x);
-        sampling.insert(sampling.end(), cnt, x);
+        int cnt = target(x); // x에 해당하는 값이 몇 번 나오는지
+        sampling.insert(sampling.end(), cnt, x); // cnt 개수만큼 x insert
     }
 
-    std::random_shuffle(sampling.begin(), sampling.end());
+    std::random_shuffle(sampling.begin(), sampling.end()); //무작위로 섞은 vector 반환
     return sampling;
 }
 

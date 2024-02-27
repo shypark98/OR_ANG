@@ -3,6 +3,7 @@
 #include "bin.h"
 #include "node.h"
 
+#include <fstream>
 #include <algorithm>
 #include <math.h>
 #include <limits.h>
@@ -27,6 +28,7 @@ namespace artnetgen {
 //using std::make_pair;
 //using std::ceil;
 //using std::to_string;
+using std::ofstream;
 using namespace std;
 using namespace odb;
 
@@ -83,25 +85,25 @@ Netlist::summaryDesign() {
     int numFFs = 0;
     int numPIs = 0;
     int numPOs = 0;
-
-
+    
+    ofstream log(ang_->getLogFile(), std::ios::app);
     for(int i=0; i < nodes_.size(); i++) {
         Node* node = nodes_[i];
 
 
         if( node->getType() == NodeType::PrimaryIn) {
             if( node->numFanins() != 0 ) {
-                cout << "#fanin of primary input is not zero! (" << node->numFanins() << ")" <<  endl;
+                log << "#fanin of primary input is not zero! (" << node->numFanins() << ")" <<  endl;
                 exit(0);
             }
         } else if( node->getType() == NodeType::PrimaryOut) {
             if( node->numFanins() != 1 ) {
-                cout << "#fanin of primary output is not one! (" << node->numFanins() << ")" <<  endl;
+                log << "#fanin of primary output is not one! (" << node->numFanins() << ")" <<  endl;
                 exit(0);
             }
 
             if( node->numFanouts() != 0 ) {
-                cout << "#fanout of primary output is not zero! (" << node->numFanouts() << ")" << endl;
+                log << "#fanout of primary output is not zero! (" << node->numFanouts() << ")" << endl;
                 exit(0);
             }
         } else {
@@ -144,32 +146,23 @@ Netlist::summaryDesign() {
         }
         cout << endl;
         */
-        
-
-    
-    
+   
     }
     
     float seqRatio = 1.0 * numFFs / (numCCs + numFFs);
 
-
-    cout << "# input unconnected nodes : " << inUnconnected.size() << endl;
-    cout << "# output unconnected nodes : " << outUnconnected.size() << endl;
-    cout << "Maximum topological order : " << getMaxTopologicalOrder() << endl;
-    cout << "Average topological order : " << getAvgTopologicalOrder() << endl;
-    cout << "# of combinational nodes : " << numCCs << endl;
-    cout << "# of sequential nodes : " << numFFs << endl;
-    cout << "# of primary input nodes : " << numPIs << endl;
-    cout << "# of primary output nodes : " << numPOs << endl;
-    cout << "Sequential ratio : " << seqRatio << " (" << 1- ang_->getCombRatio() << ")" << endl;
+    log << "# input unconnected nodes : " << inUnconnected.size() << endl;
+    log << "# output unconnected nodes : " << outUnconnected.size() << endl;
+    log << "Maximum topological order : " << getMaxTopologicalOrder() << endl;
+    log << "Average topological order : " << getAvgTopologicalOrder() << endl;
+    log << "# of combinational nodes : " << numCCs << endl;
+    log << "# of sequential nodes : " << numFFs << endl;
+    log << "# of primary input nodes : " << numPIs << endl;
+    log << "# of primary output nodes : " << numPOs << endl;
+    log << "Sequential ratio : " << seqRatio << " (" << 1- ang_->getCombRatio() << ")" << endl;
     //cout << "primary input/output will be connected to the unconnected nodes, first" << endl;
 
-
-
-
-
-
-
+    log.close();
 }
 
 
@@ -184,7 +177,8 @@ Netlist::setPrimaryIO() {
 
     x = 0, y = 0;
     done = false;
-
+    
+    ofstream log(ang_->getLogFile(), std::ios::app);
 
     while(true) {
         Bin* headBin = getBin(x,y);
@@ -206,7 +200,7 @@ Netlist::setPrimaryIO() {
         if(!done) {
             x++;
             if( x >= layoutDimX_) {
-                cout << "# of primary inputs is too large!" << endl;
+                log << "# of primary inputs is too large!" << endl;
                 exit(0);
             }
 
@@ -237,7 +231,7 @@ Netlist::setPrimaryIO() {
         if(!done) {
             y--;
             if( y < 0 ) {
-                cout << "# of primary outputs is too large!" << endl;
+                log << "# of primary outputs is too large!" << endl;
                 exit(0);
             }
         } else {
@@ -245,7 +239,7 @@ Netlist::setPrimaryIO() {
         }
     }
 
-    cout << "# of primary inputs is " << inputPinCnt << endl;
+    log << "# of primary inputs is " << inputPinCnt << endl;
 
     for(int i=0; i < primIns_.size(); i++) {
         Node* primIn = primIns_[i]; 
@@ -254,31 +248,29 @@ Netlist::setPrimaryIO() {
         primIn->setName(ioName);
 
         if(i < 5) {
-            cout << " - " << i << "-th primary input is in (" 
+            log << " - " << i << "-th primary input is in (" 
                 << primIn->x() << " " << primIn->y() << ")" << endl;
             if (i==4)
-                cout << " - ..." << endl;
+                log << " - ..." << endl;
         }
 
     }
 
-    cout << "# of primary outputs is " << outputPinCnt << endl;
+    log << "# of primary outputs is " << outputPinCnt << endl;
 
     for(int i=0; i < primOuts_.size(); i++) {
         Node* primOut = primOuts_[i];
         string ioName = "out" + to_string(i);
         primOut->setName(ioName);
         if(i < 5) {
-            cout << " - " << i << "-th primary output is in (" 
+            log << " - " << i << "-th primary output is in (" 
                 << primOut->x() << " " << primOut->y() << ")" << endl;
             if (i==4)
-                cout << " - ..." << endl;
+                log << " - ..." << endl;
         }
     }
-
-
-
-
+    
+    log.close();
     /*
     int inputPinCnt = ang_->getInputPinCnt();
     int outputPinCnt = ang_->getOutputPinCnt();
@@ -345,13 +337,18 @@ Netlist::initialize() {
     //layoutDimX_ = ang_->binSqrt(); // BIN 2D Grid 너비 (x-축 bin count)
     //layoutDimY_ = ang_->binSqrt(); // BIN 2D Grid 높이 (y-축 bin count)
                                       // binSqrt --> sqrt(#bins) 라고 생각하면됨
-
-
+    
+    Netlist netlist;
+    ArtNetGen* ang = netlist.getAng();
+    ofstream log(ang->getLogFile(), std::ios::app);
+    
     double combRatio = ang_->getCombRatio();              // Nonclocking Cell 비율
     int instanceCnt = ang_->getInstanceCnt();                          // Total instance 개수 ( = CC + FF )
     double discountFactor = 0.80;
     int combCellCnt = std::ceil( instanceCnt * combRatio);  
     int flipflopCnt = instanceCnt * (1-combRatio);
+
+    //각 partition_id별 instance 개수 구해야함
     int totalBinCnt = ceil(sqrt(instanceCnt));
 
     // Init layout dimension
@@ -368,7 +365,7 @@ Netlist::initialize() {
 
     int initCellCnt = 0.80 * instanceCnt - 0.2 * (1-combRatio) * instanceCnt;
 
-    cout << "Layout dimension (" << layoutDimX_ << " " << layoutDimY_ << ")" << endl;
+    log << "Layout dimension (" << layoutDimX_ << " " << layoutDimY_ << ")" << endl;
    
     int binCnt = layoutDimX_ * layoutDimY_;
     //int avgNodeCnt = ceil( 1.0* instanceCnt / binCnt );             // BIN당 평균 instance (node) 개수
@@ -443,7 +440,8 @@ Netlist::initialize() {
         }
     }
 
-    cout << "finished initialize" << endl;
+    log << "finished initialize" << endl;
+    log.close();
     print();
 }
 

@@ -540,7 +540,7 @@ proc triton_part_design { args } {
   set guardband_flag false
   set e_wt_factors { 1.0 }
   set v_wt_factors { 1.0 }
-  set placement_wt_factors { }
+  set placement_wt_factors { 2.0 }
   set thr_coarsen_hyperedge_size_skip 1000
   set thr_coarsen_vertices 10
   set thr_coarsen_hyperedges 50

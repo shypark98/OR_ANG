@@ -75,6 +75,10 @@
 // par causes abseil link error at startup on apple silicon
 #include "par/MakePartitionMgr.h"
 #endif
+#ifdef ENABLE_BLOB
+// uadding blob clustering related
+#include "blob/MakeBlobMgr.h"
+#endif
 #include "pdn/MakePdnGen.hh"
 #include "ppl/MakeIoplacer.h"
 #include "psm/MakePDNSim.hh"
@@ -151,6 +155,9 @@ OpenRoad::~OpenRoad()
 #ifdef ENABLE_PAR
   deletePartitionMgr(partitionMgr_);
 #endif
+#ifdef ENABLE_BLOB
+    deleteBlobMgr(blobMgr_);
+#endif
   deletePdnGen(pdngen_);
   deleteICeWall(icewall_);
   deleteDistributed(distributer_);
@@ -209,6 +216,9 @@ void OpenRoad::init(Tcl_Interp* tcl_interp)
   antenna_checker_ = makeAntennaChecker();
 #ifdef ENABLE_PAR
   partitionMgr_ = makePartitionMgr();
+#endif
+#ifdef ENABLE_BLOB
+    blobMgr_ = makeBlobMgr();
 #endif
   pdngen_ = makePdnGen();
   icewall_ = makeICeWall();

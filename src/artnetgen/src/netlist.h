@@ -107,6 +107,8 @@ class Netlist {
     void setArtNetGen(ArtNetGen* ang);
     void print();
     void readDb(odb::dbDatabase* db);
+    ArtNetGen* getAng() const { return ang_; }
+
     
     std::vector<Net*> getNetlist();
     std::vector<Node*> getNodes();

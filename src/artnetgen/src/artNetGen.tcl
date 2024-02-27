@@ -1,9 +1,13 @@
 
 sta::define_cmd_args "artnetgen_init" {
-    [-verbose] [-spec_file] [-out_file] [-top_module]}
+    [-verbose] [-hierarchy_flag] [-spl_file] [-spec_file] [-out_file] [-top_module]}
 
 sta::define_cmd_args "artnetgen_write_verilog" {
     [-out_file] 
+}
+
+sta::define_cmd_args "artnetgen_run" {
+    [-log_file]
 }
 
 sta::define_cmd_args "artnetgen_write_sdc" {
@@ -15,9 +19,9 @@ sta::define_cmd_args "artnetgen_write_spec" {
 }
 
 sta::define_cmd_args "artnetgen_create_spec" {
-    [-num_insts] [-num_primary_ios] [-comb_ratio] \
+    [-num_insts] [-num_primary_in] [-num_primary_out] [-comb_ratio] \
     [-avg_net_degree] [-avg_bbox] [-avg_topo_order] \
-    [-cell_list] [-out_file]
+    [-hierarchy_flag] [-cell_list] [-out_file]
 }
 
 sta::define_cmd_args "artnetgen_set_parameter" {
@@ -92,12 +96,16 @@ proc artnetgen_write_spec { args } {
 
 
 proc artnetgen_create_spec { args } {
-    sta::parse_key_args "artnetgen_create_spec" args \
-        keys { -num_insts -num_primary_ios -comb_ratio -avg_net_degree -avg_bbox -avg_topo_order -cell_list -out_file } flags {}
+sta::parse_key_args "artnetgen_create_spec" args \
+        keys { -num_insts -num_primary_in -num_primary_out -comb_ratio -avg_net_degree -avg_bbox -avg_topo_order -hierarchy_flag -cell_list -out_file } flags {}
+    
+    set hierarchy_flag false
 
     if { ![info exists keys(-num_insts)] } {
     }
-    if { ![info exists keys(-num_primary_ios)] } {
+    if { ![info exists keys(-num_primary_in)] } {
+    }
+    if { ![info exists keys(-num_primary_out)] } {
     }
     if { ![info exists keys(-comb_ratio)] } {
 
@@ -111,6 +119,9 @@ proc artnetgen_create_spec { args } {
     if { ![info exists keys(-avg_topo_order)] } {
 
     }
+    if { [info exists keys(-hierarchy_flag)] } {
+        set hierachy_flag $keys(-hierarchy_flag)
+    }
     if { ![info exists keys(-cell_list)] } {
 
     }
@@ -119,21 +130,24 @@ proc artnetgen_create_spec { args } {
     }
 
     set num_insts $keys(-num_insts)
-    set num_primary_ios $keys(-num_primary_ios)
+    set num_primary_in $keys(-num_primary_in)
+    set num_primary_out $keys(-num_primary_out)
     set comb_ratio $keys(-comb_ratio)
     set avg_net_degree $keys(-avg_net_degree)
     set avg_bbox $keys(-avg_bbox)
     set avg_topo_order $keys(-avg_topo_order)
+    set hierachy_flag $hierarchy_flag
     set cell_list $keys(-cell_list)
     set out_file $keys(-out_file)
 
     sta::check_positive_integer "-num_insts" $num_insts
-    sta::check_positive_integer "-num_primary_ios" $num_primary_ios
+    sta::check_positive_integer "-num_primary_in" $num_primary_in
+    sta::check_positive_integer "-num_primary_out" $num_primary_out
     sta::check_positive_float "-comb_ratio" $comb_ratio
     sta::check_positive_float "-avg_bbox" $avg_bbox
     sta::check_positive_float "-avg_topo_order" $avg_topo_order
 
-    artnetgen_create_spec_cmd $num_insts $num_primary_ios $comb_ratio $avg_net_degree $avg_bbox $avg_topo_order $cell_list $out_file
+    artnetgen_create_spec_cmd $num_insts $num_primary_in $num_primary_out $comb_ratio $avg_net_degree $avg_bbox $avg_topo_order $cell_list $out_file
 }
 
 
@@ -143,7 +157,7 @@ proc artnetgen_print_masters { } {
 
 proc artnetgen_init { args } {
     sta::parse_key_args "artnetgen_init" args \
-        keys { -verbose -spec_file -top_module } flags {}
+        keys { -verbose -hierarchy_flag -spl_file -spec_file -top_module } flags {}
     # added by DYK
     if { [info exists keys(-top_module)] } {
         set top_module $keys(-top_module)
@@ -155,17 +169,43 @@ proc artnetgen_init { args } {
         artnetgen_set_verbose_cmd $verbose
     }
 
+    if { [info exists keys(-spl_file)] } {
+        set spec_file $keys(-spl_file)
+        artnetgen_set_spl_file_cmd $spl_file
+    }
+
     if { [info exists keys(-spec_file)] } {
         set spec_file $keys(-spec_file)
         artnetgen_set_spec_file_cmd $spec_file
-    }
+    } 
+    
+    if { [info exists keys(-hierarchy_flag)] } {
+        set spec_file $keys(-hierarchy_flag)
+        artnetgen_set_hierarchy_flag_cmd $spec_file
+    } 
 
     artnetgen_init_cmd 
 }
 
 
-proc artnetgen_run { } {
+proc artnetgen_run { args } {
     # The ArtNetGen will write verilog
+    sta::parse_key_args "artnetgen_init" args \
+        keys { -log_file } flags {}
+
+    set log_file ""
+    if { [info exists keys(-log_file)] } {
+        set log_file $keys(-log_file)
+    }
+    artnetgen_set_log_file_cmd $log_file
     artnetgen_run_cmd
     #artnetgen_clear_cmd 
 }
+
+
+
+
+
+
+
+

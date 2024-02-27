@@ -3,6 +3,7 @@
 #include "bin.h"
 #include "node.h"
 
+#include <fstream>
 #include <algorithm>
 #include <math.h>
 #include <limits.h>
@@ -24,29 +25,29 @@ using std::queue;
 using std::make_pair;
 using std::ceil;
 using std::to_string;
-
+using std::ofstream;
 using namespace odb;
 
 
 
 void
 Netlist::distMatching() {
-
+    
     int tarEdgeCnt = edgeDist_.totalCnt();
     int curEdgeCnt = 0;
-
+    
+    Netlist netlist;
+    ArtNetGen* ang = netlist.getAng();
+    ofstream log(ang->getLogFile(), std::ios::app);
 
     vector<Bin*> srcBins = bins_;
     vector<int> edgeSampling = edgeDist_.getSamplingVector();
-
-
-    cout << "Total # of edges to create : " << tarEdgeCnt << endl;
+    
+    
+    log << "Total # of edges to create : " << tarEdgeCnt << endl;
 
     while ( tarEdgeCnt > curEdgeCnt ) {
-
-       
-        
-        
+ 
         int rIdx = rand() % edgeSampling.size();
         int edgeLength = edgeSampling[rIdx]; //edgeDist_.sample();
 
@@ -55,7 +56,7 @@ Netlist::distMatching() {
         std::random_shuffle(srcBins.begin(), srcBins.end());
         // Iterate source-sink bins (distance(source, sink) == edgeLength)
         for(Bin* srcBin : srcBins) {
-            vector<Bin*> sinkBins = getSinkBins(srcBin, edgeLength, true);
+            vector<Bin*> sinkBins = getSinkBins(srcBin, edgeLength, true); //edgeLengt로부터 sinkBin을 고름
             // Iterate sink bins
             for(Bin* sinkBin : sinkBins) {
                 Gain localMaxG = getMaxGain(srcBin, sinkBin);
@@ -79,15 +80,14 @@ Netlist::distMatching() {
 
             if(curEdgeCnt % 1000 == 0 || curEdgeCnt == tarEdgeCnt) { 
                 double progress = 1.0 * curEdgeCnt / tarEdgeCnt;
-                printf("distribution matching progress... [%2.2f\%]\n", 100* progress); 
+                log << ("distribution matching progress... [%2.2f\%]\n", 100* progress) << endl;
             }
 
         }
         //
     }
-
+    log.close();
     print();
-
 
     // 
 }
@@ -133,7 +133,7 @@ Gain Netlist::getMaxGain(Bin* srcBin, Bin* sinkBin) {
 
     for(int fo=0; fo<foDist_.xMax(); fo++) {
         vector<Node*> candiSrcs = srcBin->fo2Nodes(fo);
-
+        //srcBin에 속한 node 중 fo이fo 인 node들
         if(candiSrcs.size() == 0) continue;
         double foG = fanoutGain(fo, fo+1);
 
@@ -184,12 +184,7 @@ Gain Netlist::getMaxGain(Bin* srcBin, Bin* sinkBin) {
         for(int fi=0; fi<fiDist_.xMax(); fi++) {
             vector<Node*> candiSinks = sinkBin->fi2Nodes(fi);
 
-            
-
-
-
             if(candiSinks.size() == 0) continue;
-
 
             double fiG = faninGain(fi, fi+1);
 
@@ -235,7 +230,8 @@ double Netlist::bboxGain(int bbox1, int bbox2) {
 
     double currErr = 1.0 * abs(bboxDist_.delta(bbox1)) + 1.0 * abs(bboxDist_.delta(bbox2));
     double nextErr = 1.0 * abs(bboxDist_.delta(bbox1)-1) + 1.0 * abs(bboxDist_.delta(bbox2)+1);
-
+    //delta == tarCnt_ - curCnt_
+    //
     //    - 1.0 * abs(bboxDist_.delta(bbox1)-1);
     //double nextErr = 1.0 * abs(bboxDist_.delta(bbox2)) - 1.0 * abs(bboxDist_.delta(bbox2)+1);
     
@@ -245,16 +241,13 @@ double Netlist::bboxGain(int bbox1, int bbox2) {
     //return g;
     return deltaErr;
     
-
-
-    
-    double deltaR1 = bboxDist_.deltaErrorRatio(bbox1, -1);
-    double deltaR2 = bboxDist_.deltaErrorRatio(bbox2, 1);
-    double errorR1 = bboxDist_.errorRatio(bbox1);
-    double errorR2 = bboxDist_.errorRatio(bbox2);
-    double gain = deltaR1 + deltaR2 + errorR1 - errorR2;
+    //double deltaR1 = bboxDist_.deltaErrorRatio(bbox1, -1);
+    //double deltaR2 = bboxDist_.deltaErrorRatio(bbox2, 1);
+    //double errorR1 = bboxDist_.errorRatio(bbox1);
+    //double errorR2 = bboxDist_.errorRatio(bbox2);
+    //double gain = deltaR1 + deltaR2 + errorR1 - errorR2;
     //cout << "bbox gain : " << gain << endl;
-    return gain;
+    //return gain;
 }
 
 // Fanout gain function

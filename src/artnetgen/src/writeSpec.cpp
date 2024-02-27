@@ -41,6 +41,33 @@ using std::pow;
 using std::exp;
 using std::queue;
 
+int getMaxFanout(dbSet<dbInst> insts) {
+    
+    maxFanout = 0;
+    for(auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
+        dbInst* inst = *inst_itr;
+        dbSet<dbITerm> inst_iterms = inst->getITerms();
+        numFanouts = 0;
+        
+        for(auto inst_iterm_itr = inst_iterms.begin(); inst_iterm_itr != inst_iterms.end();
+            ++inst_iterm_itr) {
+            dbITerm* inst_iterm = *inst_iterm_itr;
+            if(inst_iterm->getIoType() == dbIoType::OUTPUT) {
+                dbNet* net = inst_iterm->getNet();
+                dbSet<dbITerm>  net_iterms = net->getITerms();
+                for (auto net_iterm_itr = net_iterms.begin(); net_iterm_itr != net_iterms.end();
+                        ++net_iterm_itr) {
+                    dbITerm* net_iterm = *net_iterm_itr;
+                    dbInst*  sink_inst = net_iterm->getInst();
+                    if(net_iterm->getIoType() == dbIoType::INPUT) {
+                        numFanouts++;
+                    }
+                }
+            }
+        }
+    maxFanout = max(maxFanout, numFanouts);
+    }
+}
 
 
 int getMaxInSigCnt() {
@@ -276,8 +303,8 @@ unordered_map<int,int> makeExpDistribution(int minVal, int maxVal, float avgVal,
 }
 
 void
-ArtNetGen::createSpec(int numInsts, int numIOs, float combRatio, float avgNetDeg, float avgBbox, float avgTopoOrder, 
-        const char* onlyUseList, const char* fileName) {
+ArtNetGen::createSpec(int numInsts, int numINs, int numOUTs, float combRatio, float avgNetDeg, float avgBbox, float avgTopoOrder, 
+        bool hierachy_flag, const char* onlyUseList, const char* fileName) {
     
     cout << "HERE CREATE SPEC" << endl;
 
@@ -290,8 +317,8 @@ ArtNetGen::createSpec(int numInsts, int numIOs, float combRatio, float avgNetDeg
     unordered_map<string,int> onlyUseMasters;
 
     int numNets = numInsts;
-    int numInBTerms = numIOs/2;
-    int numOutBTerms = numIOs/2;
+    int numInBTerms = numINs;
+    int numOutBTerms = numOUTs;
     int numEdges = ceil(1.0 * numInsts * avgNetDeg);
 
     int dimX =1, dimY =1;
@@ -626,10 +653,59 @@ ArtNetGen::analyzeTopologicalOrder() {
     return avgTopoOrder;
 }
 
-void 
+void
 ArtNetGen::writeSpec(const char* fileName) {
-
     
+    dbDatabase* db = ord::OpenRoad::openRoad()->getDb();
+    dbChip* chip = db->getChip();
+
+    if (chip == nullptr) {
+        cout << "dbChip does not exist!" << endl;
+        return;
+    }
+
+    dbBlock* block = chip->getBlock();
+    
+    if (hierarchy_flag_) {
+    
+        std::map<int, set<Instance*>> instance_map;
+        // build partition instance map
+        for (dbInst* inst : block->getInsts()) {
+            dbIntProperty* prop_id = dbIntProperty::find(inst, "partition_id");
+            if (!prop_id) {
+                logger_->warn(ANG, 15,
+                "Property 'partition_id' not found for inst {}.",
+                inst->getName());
+            } else {
+                const int partition = prop_id->getValue();
+                instance_map[partition].insert(inst);
+            }
+        }
+        for (auto it ->instance_map.begin(); it != instance_map.end(); ++it) {
+            set<Instance*> insts = it->second;
+        }
+        coreWidth, coreHeight = getCoreWidthHeight();
+        writeSpec(fileName, insts, coreWidth, coreHeight);
+    }
+
+    else {
+        Rect coreArea = block->getCoreArea();
+        Point coreLL = coreArea.ll();
+        Point coreUR = coreArea.ur();
+
+        int coreWidth = coreUR.x() - coreLL.x();
+        int coreHeight = coreUR.y() - coreLL.y();
+        dbSet<dbInst> insts = block->getInsts();
+        writeSpec(fileName, insts, coreWidth, coreHeight)
+    }
+}
+
+
+void 
+ArtNetGen::writeSpec(const char* fileName, dbSet<dbInst> insts, int coreWidth, int coreHeight) {
+    
+    ofstream spl(SPLFile_);
+    /*
     dbDatabase* db = ord::OpenRoad::openRoad()->getDb();
 
     dbChip* chip = db->getChip();
@@ -637,7 +713,7 @@ ArtNetGen::writeSpec(const char* fileName) {
         cout << "dbChip does not exist!" << endl;
         return;
     }
-
+    
 
     dbBlock* block = chip->getBlock();
 
@@ -649,7 +725,7 @@ ArtNetGen::writeSpec(const char* fileName) {
     int coreWidth = coreUR.x() - coreLL.x();
     int coreHeight = coreUR.y() - coreLL.y();
     
-
+    */
     unordered_map<int,int> faninDistribution;
     unordered_map<int,int> fanoutDistribution;
     unordered_map<int,int> bboxDistribution;
@@ -676,7 +752,7 @@ ArtNetGen::writeSpec(const char* fileName) {
             dimY++;
     }
 
-    
+    // 초기화 다시 설정할 필요?
     int maxFanins = min(6, getMaxInSigCnt()); 
     int maxFanouts = 50;
     int maxEdgelen = dimX + dimY;
@@ -708,7 +784,7 @@ ArtNetGen::writeSpec(const char* fileName) {
 
     int numBins = dimX * dimY;
     int avgInsts = ceil( 1.0 * numInsts / numBins );
-    int binSize = (coreWidth + coreHeight) / (dimX + dimY);
+    int binSize = (coreWidth + coreHeight) / (dimX + dimY); //ASPECT RATIO가 1일 때만 가정한듯
 
     for(auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
     
@@ -722,7 +798,7 @@ ArtNetGen::writeSpec(const char* fileName) {
         else
             numCombinational++;
 
-        if(onlyUseMasters.find(master->getName()) == onlyUseMasters.end())
+        if(onlyUseMasters.find(master->getName()) == onlyUseMasters.end()) //해당 cell의 개수를 파악
             onlyUseMasters[master->getName()] = 0;
         onlyUseMasters[master->getName()]++;
 
@@ -731,11 +807,11 @@ ArtNetGen::writeSpec(const char* fileName) {
         int bboxSize = 0;
 
         int sourceX, sourceY;
-        inst->getLocation(sourceX, sourceY);
+        inst->getLocation(sourceX, sourceY); //instance X Y 좌표 void dbInst::getLocation(int& x, int& y) const
         
         int lx, ly, ux, uy;
         lx = sourceX, ly = sourceY;
-        ux = sourceX, uy = sourceY;
+        ux = sourceX, uy = sourceY; 
         
         for(auto inst_iterm_itr = inst_iterms.begin(); inst_iterm_itr != inst_iterms.end();
                 ++inst_iterm_itr) {
@@ -753,25 +829,25 @@ ArtNetGen::writeSpec(const char* fileName) {
             if(inst_iterm->getIoType() == dbIoType::OUTPUT) {
                 dbNet* net = inst_iterm->getNet();
 
-                dbSet<dbITerm>  net_iterms = net->getITerms();
+                dbSet<dbITerm>  net_iterms = net->getITerms(); //output에 연결된 net 구하고 net에 연결된 pin들 다 구함
                 //cout << " - " << net->getName() << endl;
 
                 for (auto net_iterm_itr = net_iterms.begin(); net_iterm_itr != net_iterms.end();
                         ++net_iterm_itr) {
                     dbITerm* net_iterm = *net_iterm_itr;
-                    dbInst*  sink_inst = net_iterm->getInst();
+                    dbInst*  sink_inst = net_iterm->getInst(); //net에 연결된 pin들이 어떤 inst껀지
 
                     int sinkX, sinkY;
                     sink_inst->getLocation(sinkX, sinkY);
                     lx = min(lx, sinkX), ly = min(ly, sinkY);
                     ux = max(ux, sinkX), uy = max(uy, sinkY);
-
-
+                    
+                    
                     if(net_iterm->getIoType() == dbIoType::OUTPUT) {
                         // for debug
                         if(inst_iterm != net_iterm) {
-                            cout << "invalid output term!" << endl;
-                            //exit(0);
+                            cout << "invalid output term!" << endl; // 한 net에 output pin이 2개 이상일 때
+                            //exit(0); //ANG에서 이 경우가 발생하는 이유는? distribution을 만족할 수 있게 cell을 골라서 넣는 방법은?
                         }
                         //cout << "   (out) ";
                     }
@@ -799,20 +875,18 @@ ArtNetGen::writeSpec(const char* fileName) {
         }
        
         bboxSize = (abs(ux - lx) + abs(uy - ly)) / binSize;
-       
-
+        
+        //edgelen은 net에 같이 연결된 모든 cell과 cell 사이의 manhattan distance를 계산한 것
+        //bboxSize는 한 net에서 가장 멀리 떨어져있는 output과 input 사이의 거리를 계산한 것
         /////////////////////////////////////////////////////
 
         //
 
-
-
-
-        cout << " - instance summary (" << inst->getName() << ")" << endl;
-        cout << "   # of fanins  : " << numFanins << endl;
-        cout << "   # of fanouts : " << numFanouts << endl;
-        cout << "   size of bbox : " << bboxSize << endl;
-        cout << endl; 
+        spl << " - instance summary (" << inst->getName() << ")" << endl;
+        spl << "   # of fanins  : " << numFanins << endl;
+        spl << "   # of fanouts : " << numFanouts << endl;
+        spl << "   size of bbox : " << bboxSize << endl;
+        spl << endl; 
 
         if(maxFanouts < numFanouts)
             numFanouts = maxFanouts;
@@ -835,43 +909,44 @@ ArtNetGen::writeSpec(const char* fileName) {
     }
     
 
-    cout << " - design summary" << endl;
-    cout << "   core area       : (" << coreLL.x() << " " << coreLL.y() << " " << coreUR.x() << " " << coreUR.y() << ")" << endl;
-    cout << "   layout dim.     : (" << dimX << " " << dimY << ")" << endl;
-    cout << "   avg. bin size   : " << binSize << endl;
-    cout << "   total # bins    : " << numBins << endl;
-    cout << endl;
-    cout << "   # input pins    : " << numInBTerms << endl;
-    cout << "   # output pins   : " << numOutBTerms << endl;
+    spl << " - design summary" << endl;
+    spl << "   core area       : (" << coreLL.x() << " " << coreLL.y() << " " << coreUR.x() << " " << coreUR.y() << ")" << endl;
+    spl << "   layout dim.     : (" << dimX << " " << dimY << ")" << endl;
+    spl << "   avg. bin size   : " << binSize << endl;
+    spl << "   total # bins    : " << numBins << endl;
+    spl << endl;
+    spl << "   # input pins    : " << numInBTerms << endl;
+    spl << "   # output pins   : " << numOutBTerms << endl;
     
-    cout << "   total # insts   : " << numInsts << endl;
-    cout << "   # combinational : " << numCombinational << endl;
-    cout << "   # sequential    : " << numSequential << endl;
-    cout << endl;
-    cout << "   max # fanins    : " << maxFanins << endl;
-    cout << "   max # fanouts   : " << maxFanouts << endl;
-    cout << endl;
-    cout << "   <fanin distribution> " << endl;
+    spl << "   total # insts   : " << numInsts << endl;
+    spl << "   # combinational : " << numCombinational << endl;
+    spl << "   # sequential    : " << numSequential << endl;
+    spl << endl;
+    spl << "   max # fanins    : " << maxFanins << endl;
+    spl << "   max # fanouts   : " << maxFanouts << endl;
+    spl << endl;
+    spl << "   <fanin distribution> " << endl;
     for(int x=0; x <= maxFanins; x++)
-    cout << "       - (" << x << ") " << faninDistribution[x] << endl;
-    cout << endl;
-    cout << "   <fanout distribution> " << endl;
+    spl << "       - (" << x << ") " << faninDistribution[x] << endl;
+    spl << endl;
+    spl << "   <fanout distribution> " << endl;
     for(int x=0; x <= maxFanouts; x++)
-    cout << "       - (" << x << ") " << fanoutDistribution[x] << endl;
-    cout << endl;
-    cout << "   <bbox distribution> " << endl;
+    spl << "       - (" << x << ") " << fanoutDistribution[x] << endl;
+    spl << endl;
+    spl << "   <bbox distribution> " << endl;
     for(int x=0; x <= maxBbox; x++)
-    cout << "       - (" << x << ") " << bboxDistribution[x] << endl;
-    cout << endl;
-    cout << "   <edgelen distribution> " << endl;
+    spl << "       - (" << x << ") " << bboxDistribution[x] << endl;
+    spl << endl;
+    spl << "   <edgelen distribution> " << endl;
     for(int x=0; x <= maxEdgelen; x++)
-    cout << "       - (" << x << ") " << edgelenDistribution[x] << endl;
-    cout << endl;
-    cout << "   <only use masters>" << endl;
+    spl << "       - (" << x << ") " << edgelenDistribution[x] << endl;
+    spl << endl;
+    spl << "   <only use masters>" << endl;
     for(auto it : onlyUseMasters)
-    cout << "       - (" << it.first << ") " << it.second << endl;
-    cout << endl;
+    spl << "       - (" << it.first << ") " << it.second << endl;
+    spl << endl;
 
+    spl.close();
 
     dbSet<dbNet> nets = block->getNets();
     //dbSet<dbNet>::iterator net_itr;

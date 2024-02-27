@@ -132,6 +132,9 @@ ArtNetGen::ArtNetGen() :
     combRatio_(0.9),
     verbose_(1) {
     specFile_ = "";
+    SPLFile_ = ""; // spec log file
+    logFile_ = "";
+    hierarchy_flag_ = false;
     outFile_ = "";
     topModule_ = "artnet";    
 } 
@@ -152,6 +155,9 @@ ArtNetGen::clear() {
   combRatio_ = 0.9;
   verbose_ = 1;
   specFile_ = "";
+  SPLFile_ = "";
+  logFile_ = "";
+  hierarchy_flag_ = false;
   outFile_ = "";
   topModule_ = "artnet";
 
@@ -542,7 +548,7 @@ ArtNetGen::readSpec() {
   fiDist_.init( 0, maxFi, getInstanceCnt(), fanIns );
   foDist_.init( 0, maxFo, getInstanceCnt(), fanOuts );
   bboxDist_.init( 0, maxBbox, getInstanceCnt(), netBboxes );
-  int totalEdgeCnt = ceil(1.0 * getInstanceCnt() * fiDist_.targetAvg());
+  int totalEdgeCnt = ceil(1.0 * getInstanceCnt() * fiDist_.targetAvg()); // 확인 필요
   // avg. net degree = (avg. # fanin)
   // total edge count = (avg. net degree) x (# instances)
   edgeDist_.init( 0, maxWindow, totalEdgeCnt, windows);
