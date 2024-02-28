@@ -41,11 +41,34 @@ using std::pow;
 using std::exp;
 using std::queue;
 
-int getMaxFanout(dbSet<dbInst> insts) {
+int getPartitionCoreWidthHeight(vector<dbInst*> insts) {
+    int lx = INT_MAX;
+    int ly = INT_MAX;
+    int ux = 0;
+    int uy = 0;
+    int inst_num = 0;
+
+    for (auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
+        int cur_x, cur_y;
+        inst_itr->getLocation(&cur_x, &cur_y);
+        // If Macro is added, need to consider cell width, height;
+        lx = min(cur_x, lx);
+        ly = min(cur_y, ly);
+        ux = max(cur_x, ux);
+        uy = max(cur_x, uy);
+        inst_num++;
+    }
+    int coreWidth = ux - lx;
+    int coreHeight = uy - ly;
+    return coreWidth, coreHeight;
+}
+
+
+int getMaxFanout(vector<dbInst*> insts) {
     
     maxFanout = 0;
     for(auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
-        dbInst* inst = *inst_itr;
+        //dbInst* inst = *inst_itr;
         dbSet<dbITerm> inst_iterms = inst->getITerms();
         numFanouts = 0;
         
@@ -67,6 +90,7 @@ int getMaxFanout(dbSet<dbInst> insts) {
         }
     maxFanout = max(maxFanout, numFanouts);
     }
+    return maxFanout;
 }
 
 
@@ -668,7 +692,7 @@ ArtNetGen::writeSpec(const char* fileName) {
     
     if (hierarchy_flag_) {
     
-        std::map<int, set<Instance*>> instance_map;
+        std::map<int, vector<dbInst*>> instance_map;
         // build partition instance map
         for (dbInst* inst : block->getInsts()) {
             dbIntProperty* prop_id = dbIntProperty::find(inst, "partition_id");
@@ -678,12 +702,21 @@ ArtNetGen::writeSpec(const char* fileName) {
                 inst->getName());
             } else {
                 const int partition = prop_id->getValue();
-                instance_map[partition].insert(inst);
+                instance_map[partition].push_back(inst);
             }
         }
+
         for (auto it ->instance_map.begin(); it != instance_map.end(); ++it) {
-            set<Instance*> insts = it->second;
+            vector<dbInst*> insts = it->second;
         }
+        /*
+        std::set<Instance> insts;
+        for (auto it = instance_map.begin(); it != instance_map.end(); ++it) {
+            for (Instance* inst_ptr : it->second) {
+                insts.insert(*inst_ptr);
+            }
+        }
+        */
         coreWidth, coreHeight = getCoreWidthHeight();
         writeSpec(fileName, insts, coreWidth, coreHeight);
     }
@@ -702,7 +735,9 @@ ArtNetGen::writeSpec(const char* fileName) {
 
 
 void 
-ArtNetGen::writeSpec(const char* fileName, dbSet<dbInst> insts, int coreWidth, int coreHeight) {
+ArtNetGen::writeSpec(const char* fileName, vector<dbInst*> insts, int coreWidth, int coreHeight) {
+    
+    string partition = "";
     
     ofstream spl(SPLFile_);
     /*
@@ -734,7 +769,7 @@ ArtNetGen::writeSpec(const char* fileName, dbSet<dbInst> insts, int coreWidth, i
 
 
 
-    dbSet<dbInst> insts = block->getInsts();
+    //dbSet<dbInst> insts = block->getInsts();
 
     int numInsts = insts.size();
     int numCombinational = 0;
@@ -754,7 +789,7 @@ ArtNetGen::writeSpec(const char* fileName, dbSet<dbInst> insts, int coreWidth, i
 
     // 초기화 다시 설정할 필요?
     int maxFanins = min(6, getMaxInSigCnt()); 
-    int maxFanouts = 50;
+    int maxFanouts = getMaxFanout(insts);
     int maxEdgelen = dimX + dimY;
     int maxBbox = dimX + dimY;
     
@@ -767,28 +802,35 @@ ArtNetGen::writeSpec(const char* fileName, dbSet<dbInst> insts, int coreWidth, i
         bboxDistribution[x] = 0;
     for(int x=0; x <= maxEdgelen; x++)
         edgelenDistribution[x] = 0;
+    
+    if (!hierarchy_flag_) {
+        dbSet<dbBTerm> bterms = block->getBTerms(); // get port terminals
+        // partition된 애들 port 어캐 처리하는지 참조 필요
 
-    dbSet<dbBTerm> bterms = block->getBTerms(); // get port terminals
+        for(auto bterm_itr = bterms.begin(); bterm_itr != bterms.end(); ++bterm_itr) {
+     
+            dbBTerm* bterm = *bterm_itr;
 
-    for(auto bterm_itr = bterms.begin(); bterm_itr != bterms.end(); ++bterm_itr) {
- 
-        dbBTerm* bterm = *bterm_itr;
-
-        if(bterm->getSigType() == dbSigType::SIGNAL) {
-            if(bterm->getIoType() == dbIoType::INPUT) 
-                numInBTerms++;
-            if(bterm->getIoType() == dbIoType::OUTPUT)
-                numOutBTerms++;
+            if(bterm->getSigType() == dbSigType::SIGNAL) {
+                if(bterm->getIoType() == dbIoType::INPUT) 
+                    numInBTerms++;
+                if(bterm->getIoType() == dbIoType::OUTPUT)
+                    numOutBTerms++;
+            }
         }
+
+        int numBins = dimX * dimY;
+        int avgInsts = ceil( 1.0 * numInsts / numBins );
+        int binSize = (coreWidth + coreHeight) / (dimX + dimY); //ASPECT RATIO가 1일 때만 가정한듯
     }
-
-    int numBins = dimX * dimY;
-    int avgInsts = ceil( 1.0 * numInsts / numBins );
-    int binSize = (coreWidth + coreHeight) / (dimX + dimY); //ASPECT RATIO가 1일 때만 가정한듯
-
+    else {
+        
+    
+    }
     for(auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
     
-        dbInst* inst = *inst_itr;
+        //dbInst* inst = *inst_itr;
+        
         dbSet<dbITerm> inst_iterms = inst->getITerms();
 
         dbMaster* master = inst->getMaster();
