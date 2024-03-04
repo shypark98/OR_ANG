@@ -158,7 +158,8 @@ proc artnetgen_print_masters { } {
 proc artnetgen_init { args } {
     sta::parse_key_args "artnetgen_init" args \
         keys { -verbose -hierarchy_flag -spl_file -spec_file -top_module } flags {}
-    # added by DYK
+    
+    set spl_file "./writeSpec.log"
     if { [info exists keys(-top_module)] } {
         set top_module $keys(-top_module)
         artnetgen_set_topmodule_cmd $top_module
@@ -170,7 +171,7 @@ proc artnetgen_init { args } {
     }
 
     if { [info exists keys(-spl_file)] } {
-        set spec_file $keys(-spl_file)
+        set spl_file $keys(-spl_file)
         artnetgen_set_spl_file_cmd $spl_file
     }
 
@@ -193,7 +194,7 @@ proc artnetgen_run { args } {
     sta::parse_key_args "artnetgen_init" args \
         keys { -log_file } flags {}
 
-    set log_file ""
+    set log_file "./artnetgen.log"
     if { [info exists keys(-log_file)] } {
         set log_file $keys(-log_file)
     }

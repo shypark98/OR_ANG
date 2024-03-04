@@ -818,14 +818,17 @@ ArtNetGen::writeSpec(const char* fileName, vector<dbInst*> insts, int coreWidth,
                     numOutBTerms++;
             }
         }
-
-        int numBins = dimX * dimY;
-        int avgInsts = ceil( 1.0 * numInsts / numBins );
-        int binSize = (coreWidth + coreHeight) / (dimX + dimY); //ASPECT RATIO가 1일 때만 가정한듯
     }
+    //BTERM 중에 clk, rst는 구분해야함
+    //CreateSpec으로 hierarchy 만들려면 어캐하노?
+
+    int numBins = dimX * dimY;
+    int avgInsts = ceil( 1.0 * numInsts / numBins );
+    int binSize = (coreWidth + coreHeight) / (dimX + dimY);
+    
     else {
         
-    
+        
     }
     for(auto inst_itr = insts.begin(); inst_itr != insts.end(); ++inst_itr) {
     

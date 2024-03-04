@@ -32,8 +32,8 @@ read_lef ./tech_lef/NangateOpenCellLibrary_revised.lef
     -cell_list ./onlyUseCell.list \
     -out_file ./test_circuit.spec
 
-artnetgen_init  -top_module MegaBoom \
-                -spec_file  spec_files_from_def/MegaBoom.spec \
+artnetgen_init  -top_module gcd \
+                -spec_file  spec_files_from_def/gcd.spec \
                 -verbose 6 
 # optional (default : 0.1 [ns])
 # artnetgen_set_parameter -avg_gate_delay __AVG_GATE_DELAY__
@@ -50,8 +50,8 @@ artnetgen_print_masters
 artnetgen_run
 
 
-artnetgen_write_verilog -out_file MegaBoom.v 
+artnetgen_write_verilog -out_file gcd.v 
 # optional (default : 0.1 [ns])
 # artnetgen_set_parameter -avg_gate_delay __AVG_GATE_DELAY__
-artnetgen_write_sdc -out_file MegaBoom.sdc
+artnetgen_write_sdc -out_file gcd.sdc
 exit
